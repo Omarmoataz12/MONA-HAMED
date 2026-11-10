@@ -76,7 +76,16 @@ button:disabled{opacity:.45;cursor:not-allowed;transform:none}
 #activationPanel{margin-top:18px;border:1px solid #d8c9f2;border-radius:16px;padding:18px;background:#faf7ff}
 #activationCode{width:100%;padding:13px;border:1px solid #cbb9e8;border-radius:10px;font:inherit;box-sizing:border-box;margin:8px 0 12px}
 </style>
-</head>
+<style>
+.category-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:22px 0}
+.category-card{border:1px solid #ddd4ef;border-radius:16px;background:linear-gradient(145deg,#fff,#f5f0ff);padding:24px 12px;color:var(--navy);font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;min-height:140px}
+.category-card span{font-size:34px}.category-card b{font-size:19px}.category-card small{color:var(--muted)}
+.assessment-heading{background:var(--navy);color:#fff;padding:12px 16px;border-radius:10px;font-weight:bold;margin:14px 0}
+.assessment-page{background:#fff;border:1px solid #e4e0eb;border-radius:12px;padding:8px;margin:14px 0;overflow:hidden}
+.assessment-page img{display:block;width:100%;height:auto}.assessment-card{border-color:#54c7b5;background:#f5fffd}
+@media(max-width:560px){.category-grid{grid-template-columns:1fr}.category-card{min-height:110px}}
+.exam-timer{display:inline-block;background:#fff1f0;color:#b42318;border:1px solid #f3b7b2;border-radius:999px;padding:7px 14px;font-weight:800;font-variant-numeric:tabular-nums;min-width:74px;text-align:center}.exam-timer.warning{background:#fff7e6;color:#a15c00;border-color:#f2d08a}
+</style></head>
 <body>
 <header><div class="brand">منصة اللغة العربية التعليمية</div><h1 class="title">منصة ميس منى حامد</h1><div class="sub">بوابتك للامتحانات والمتابعة والنتائج والشهادات</div><div class="brand" style="margin-top:8px">شرح • تدريب • تقييم</div></header>
 <main class="wrap">
@@ -102,12 +111,27 @@ button:disabled{opacity:.45;cursor:not-allowed;transform:none}
     <div><div class="brand">لوحة الطالب</div><h2 style="margin:2px 0;color:var(--navy)">أهلًا بك في منصتك</h2><p class="meta" style="margin:0">اضغط على أيقونة الامتحان للبدء.</p></div>
     <div class="student-chip" id="studentChip">بيانات الطالب</div>
   </div>
-  <div class="exam-grid" id="examGrid"></div><div class="actions" style="justify-content:center"><button class="gold" id="dashboardHistoryBtn" type="button">عرض سجل درجاتي</button><button class="secondary" id="backHomeBtn" type="button">العودة للصفحة الرئيسية</button></div>
-  <p class="meta" style="text-align:center">اختر رقم الامتحان، ثم أدخل كود التفعيل الخاص به.</p>
+  <div class="category-grid" id="categoryGrid">
+    <button class="category-card" id="showExamsBtn" type="button"><span>📝</span><b>الامتحانات</b><small>100 امتحان متاح</small></button>
+    <button class="category-card" id="showAssessmentsBtn" type="button"><span>📚</span><b>التقييمات</b><small>10 تقييمات • 20 سؤالًا لكل تقييم</small></button>
+  </div>
+  <div id="examsSection" class="hidden">
+    <div class="row"><h3>قائمة الامتحانات</h3><button class="secondary" id="backCategoriesFromExams" type="button">رجوع للأقسام</button></div>
+    <div class="exam-grid" id="examGrid"></div>
+    <p class="meta" style="text-align:center">اختر رقم الامتحان، ثم أدخل كود التفعيل الخاص به.</p>
+  </div>
+  <div id="assessmentsSection" class="hidden">
+    <div class="row"><h3>التقييمات – دروس المشتقات</h3><button class="secondary" id="backCategoriesFromAssessments" type="button">رجوع للأقسام</button></div>
+    <div class="assessment-heading">10 امتحانات تدريبية – 20 سؤالًا في كل امتحان</div>
+    <p class="meta">اختر امتحان التقييمات وأدخل كود التفعيل الخاص به. هذه الامتحانات مستقلة تمامًا عن قائمة الامتحانات الأساسية.</p>
+    <div class="exam-grid" id="assessmentExamGrid"></div>
+  </div>
+  </div>
+  <div class="actions" style="justify-content:center"><button class="gold" id="dashboardHistoryBtn" type="button">عرض سجل درجاتي</button><button class="secondary" id="backHomeBtn" type="button">العودة للصفحة الرئيسية</button></div>
   <div id="activationPanel" class="hidden"><b id="activationTitle">تفعيل الامتحان</b><p class="meta">أدخل كود التفعيل المخصص لهذا الامتحان.</p><input id="activationCode" type="text" autocomplete="off" placeholder="أدخل كود التفعيل الخاص بالامتحان"><button class="primary" id="activateBtn" type="button">تفعيل وبدء الامتحان</button><p class="meta" id="activationMsg"></p></div>
 </section>
 <section class="panel hidden" id="examPanel">
-<div class="row"><b id="counter">السؤال 1 من 30</b><span class="meta">ميس مني حامد</span></div>
+<div class="row"><b id="counter">السؤال 1 من 20</b><span id="examTimer" class="exam-timer">30:00</span></div>
 <div class="progress"><div class="bar" id="bar"></div></div>
 <div id="questionArea" style="margin-top:22px"></div>
 <div class="actions">
@@ -155,8 +179,54 @@ function makeExam(examNo){let out=[],seed=examNo-1;
  return out.map((q,i)=>({...q,n:i+1}));}
 const examBanks=Array.from({length:100},(_,i)=>makeExam(i+1));
 const activationCodes=["MN-SSEU-WG8F", "MN-W6SM-AE5V", "MN-7P72-WSB9", "MN-Y93U-ZY7Y", "MN-SGUT-9V9G", "MN-5ULU-6Q2X", "MN-LE52-BNTL", "MN-79D4-79DQ", "MN-G9HG-GXBK", "MN-4B2L-ZLBQ", "MN-PENU-73XK", "MN-ZXJ2-BKAH", "MN-CMT7-RFV9", "MN-FUJX-HU2X", "MN-VK3R-TZ5N", "MN-5MNS-RFNG", "MN-92PK-3WW9", "MN-RVXY-V69S", "MN-4P2U-NW7V", "MN-2W6S-BJUA", "MN-3BS9-CBG9", "MN-94K3-BBHM", "MN-V4YQ-EKSQ", "MN-WE39-CYBP", "MN-J4RD-K77G", "MN-ZRTJ-BBNF", "MN-B247-NERF", "MN-VLS7-LS63", "MN-K4XT-V8MY", "MN-D2AY-8Z3Y", "MN-LF25-ZPRN", "MN-HBM9-3X5S", "MN-SYUZ-Q6L3", "MN-YTC9-X33Z", "MN-RHHK-QZXU", "MN-VBDF-DMSS", "MN-AKUT-4SWF", "MN-A7V5-KP98", "MN-RRRR-CU5V", "MN-C4ZG-VCSX", "MN-GWC3-WERV", "MN-Q7WC-N5G2", "MN-MWKD-CF9Y", "MN-2UJC-4A6H", "MN-V4AQ-HEU2", "MN-Y6BZ-DZ4E", "MN-GHX5-7XP9", "MN-9V53-QP6Q", "MN-LMRS-UDA6", "MN-Z35X-P5C3", "MN-DU53-39VL", "MN-WHM5-JT47", "MN-X5BL-G28G", "MN-DJCY-YRZT", "MN-79Q8-QWG3", "MN-7RD8-38CG", "MN-SZDT-K2PS", "MN-76VD-4DSU", "MN-N8ZL-JXNG", "MN-F9WR-3NBU", "MN-MJYU-NAVX", "MN-NE75-KFV8", "MN-MVDR-QYEF", "MN-XDV8-NSJN", "MN-WDJW-BCP3", "MN-GGSY-JPYQ", "MN-MCXW-D869", "MN-LRKW-C25N", "MN-KEDJ-E2UD", "MN-C6BZ-6LKS", "MN-FTFD-P6DX", "MN-H5CS-ML9C", "MN-F6VE-JYHG", "MN-RUCU-N8TY", "MN-762W-ZEUJ", "MN-NG6L-75BA", "MN-WUDK-BF4T", "MN-6N2F-RURG", "MN-84X5-6C7B", "MN-LCN2-GZKB", "MN-CQKB-C4QC", "MN-KP26-YSGP", "MN-7PJQ-ZXS2", "MN-R9TE-KLCK", "MN-6BG2-VGAS", "MN-ZYRB-LBS7", "MN-G5J8-G6EB", "MN-FA4S-QM8G", "MN-AP4W-22FD", "MN-TRU7-QQJ4", "MN-YWSR-3CKD", "MN-BAPS-VTQE", "MN-X3VN-CDMU", "MN-FF6D-4V2P", "MN-Z62T-XK9C", "MN-WW8Q-A7M7", "MN-DSKE-U8YB", "MN-64BR-Z2FN", "MN-426R-U9GE", "MN-AK4T-KZVY"];
+const assessmentBaseQuestions = [
+{type:"mcq",prompt:"استخرج اسم الفاعل من: الطالب المجد يسعى إلى النجاح.",options:["المجد","النجاح","الطالب","يسعى"],answer:0,explanation:"المجد اسم فاعل من الفعل جدّ."},
+{type:"mcq",prompt:"اسم الفاعل من الفعل دعا هو:",options:["مدعو","داعٍ","دعاء","دعاية"],answer:1,explanation:"داعٍ اسم فاعل من دعا، وتحذف ياؤه في حالتي الرفع والجر إذا كان نكرة."},
+{type:"mcq",prompt:"اسم الفاعل من الفعل استمع هو:",options:["سامع","مسموع","مستمع","استماع"],answer:2,explanation:"يُصاغ اسم الفاعل من غير الثلاثي من مضارعه مع إبدال حرف المضارعة ميمًا مضمومة وكسر ما قبل الآخر."},
+{type:"mcq",prompt:"اسم الفاعل من الفعل قال هو:",options:["مقول","قائل","قوال","قول"],answer:1,explanation:"قائل اسم فاعل من قال، وهو فعل ثلاثي أجوف."},
+{type:"mcq",prompt:"اسم المفعول من الفعل كتب هو:",options:["كاتب","مكتوب","كتاب","كتّاب"],answer:1,explanation:"مكتوب اسم مفعول من الفعل الثلاثي كتب."},
+{type:"mcq",prompt:"اسم المفعول من الفعل أرسل هو:",options:["مُرسِل","رسول","مُرسَل","إرسال"],answer:2,explanation:"مُرسَل اسم مفعول من الفعل غير الثلاثي أرسل."},
+{type:"mcq",prompt:"أي الكلمات الآتية صيغة مبالغة؟",options:["كاتب","مكتوب","شكور","مكتب"],answer:2,explanation:"شكور صيغة مبالغة على وزن فعول."},
+{type:"mcq",prompt:"كلمة غفور على وزن:",options:["فعّال","فعيل","فعول","مفعال"],answer:2,explanation:"غفور على وزن فعول، وهي صيغة مبالغة."},
+{type:"mcq",prompt:"صيغة المبالغة من شكر في الاختيارات هي:",options:["شاكر","شكور","مشكور","شكر"],answer:1,explanation:"شكور صيغة مبالغة من شكر على وزن فعول."},
+{type:"mcq",prompt:"كلمة مِعوان في جملة الأب مِعوان لأولاده هي:",options:["اسم آلة","صيغة مبالغة","اسم مفعول","اسم مكان"],answer:1,explanation:"مِعوان صيغة مبالغة تدل على كثرة العون، على وزن مفعال."},
+{type:"mcq",prompt:"اسم المكان من الفعل لعب هو:",options:["لاعب","ملعب","ملعوب","لعبة"],answer:1,explanation:"ملعب اسم مكان من لعب."},
+{type:"mcq",prompt:"اسم المكان من الفعل جلس هو:",options:["مجلس","جالس","جلوس","مجلوس"],answer:0,explanation:"مجلس اسم مكان من جلس، على وزن مَفْعِل."},
+{type:"mcq",prompt:"كلمة ملتقى في جملة النادي ملتقى الشباب هي:",options:["اسم فاعل","اسم مفعول","اسم مكان","اسم آلة"],answer:2,explanation:"ملتقى اسم مكان من التقى، ويدل على موضع الالتقاء."},
+{type:"mcq",prompt:"اسم الزمان من الفعل بدأ هو:",options:["بادئ","مبدأ","مبدوء","بدء"],answer:1,explanation:"مبدأ اسم زمان أو مكان بحسب السياق، ويأتي في المثال بمعنى وقت البداية."},
+{type:"mcq",prompt:"أي الكلمات الآتية اسم آلة جامد؟",options:["مفتاح","مبرد","قلم","غسالة"],answer:2,explanation:"قلم اسم آلة جامد سماعي، لا يُشتق في الاستعمال المدرسي من فعل."},
+{type:"mcq",prompt:"اسم الآلة من غسل على الوزن الحديث هو:",options:["غاسل","مغسول","غسالة","غسل"],answer:2,explanation:"غسالة اسم آلة على وزن فعّالة."},
+{type:"mcq",prompt:"اسم الآلة مِنظار مشتق من الفعل:",options:["نظر","ناظر","منظور","انتظر"],answer:0,explanation:"مِنظار اسم آلة مشتق من الفعل نظر، على وزن مفعال."},
+{type:"mcq",prompt:"كلمة المفرمة على وزن:",options:["مفعال","مفعلة","فاعول","فعول"],answer:1,explanation:"المفرمة على وزن مِفْعَلة، وهي اسم آلة من الفعل فرم."},
+{type:"essay",prompt:"استخرج أسماء الفاعل من العبارة: الطالب المجد الساعي إلى النجاح شاكر فضل معلميه.",instruction:"اكتب أسماء الفاعل، ويمكنك ذكر الفعل المشتق منه كل اسم.",answer:"المجد من جد، والساعي من سعى، وشاكر من شكر.",explanation:"المجد والساعي وشاكر أسماء فاعل."},
+{type:"essay",prompt:"هات اسم الفاعل من الفعل استمع، ثم ضعه في جملة مفيدة.",instruction:"اكتب اسم الفاعل في جملة.",answer:"مستمع؛ الطالب مستمع لشرح المعلم.",explanation:"مستمع اسم فاعل من استمع."},
+{type:"essay",prompt:"هات اسم المفعول من الفعل طبخ، واذكره في جملة.",instruction:"اكتب اسم المفعول في جملة مفيدة.",answer:"مطبوخ؛ الطعام مطبوخ جيدًا.",explanation:"مطبوخ اسم مفعول من الفعل الثلاثي طبخ."},
+{type:"essay",prompt:"استخرج اسم المفعول من: الرسالة المرسلة وصلت في موعدها.",instruction:"حدد اسم المفعول واذكر فعله.",answer:"المرسلة من أرسل.",explanation:"المرسلة اسم مفعول من الفعل غير الثلاثي أرسل."},
+{type:"essay",prompt:"حوّل اسم الفاعل شاكر إلى صيغة مبالغة.",instruction:"اكتب صيغة المبالغة في جملة.",answer:"شكور؛ المؤمن شكور لفضل ربه.",explanation:"شكور صيغة مبالغة على وزن فعول."},
+{type:"essay",prompt:"هات صيغة مبالغة من الفعل صبر، واذكر وزنها.",instruction:"اكتب الصيغة ووزنها.",answer:"صبور على وزن فعول.",explanation:"صبور تدل على كثرة الصبر."},
+{type:"essay",prompt:"استخرج اسم المكان من: هذا مجرى نهر النيل العظيم.",instruction:"اكتب اسم المكان وفعله.",answer:"مجرى من جرى.",explanation:"مجرى يدل على موضع جريان النهر."},
+{type:"essay",prompt:"هات اسم المكان من الفعل التقى.",instruction:"اكتب اسم المكان في جملة.",answer:"ملتقى؛ النادي ملتقى الشباب.",explanation:"ملتقى اسم مكان من التقى."},
+{type:"essay",prompt:"استخرج اسم الزمان من: الإجازات موسم ممارسة الهوايات النافعة.",instruction:"حدد الكلمة التي تدل على الزمن.",answer:"موسم.",explanation:"موسم يدل على وقت ممارسة الهوايات."},
+{type:"essay",prompt:"اذكر اسم الآلة من الفعل نظر، ووزنه.",instruction:"اكتب اسم الآلة ووزنه.",answer:"مِنظار على وزن مِفعال.",explanation:"مِنظار اسم آلة مشتق من نظر."},
+{type:"essay",prompt:"ميّز بين المنشار والسيف من حيث الاشتقاق.",instruction:"حدد نوع كل اسم آلة.",answer:"المنشار اسم آلة مشتق على وزن مفعال، والسيف اسم آلة جامد سماعي.",explanation:"المنشار مشتق من نشر، أما السيف فاسم آلة جامد."},
+{type:"essay",prompt:"هات اسم آلة من الفعل كنس، ثم ضعه في جملة.",instruction:"اكتب اسم الآلة في جملة.",answer:"مكنسة؛ نظفت الأم الغرفة بالمكنسة.",explanation:"مكنسة اسم آلة مشتق من كنس على وزن مفعلة."},
+{type:"essay",prompt:"استخرج اسم آلة جامدًا من: استخدم الفلاح الفأس لتهيئة الأرض.",instruction:"اكتب اسم الآلة وسبب كونه جامدًا.",answer:"الفأس؛ اسم آلة جامد سماعي.",explanation:"الفأس اسم آلة جامد غير مشتق من فعل في هذا التدريب."}
+].map((q,i)=>({...q,n:i+1}));
+// عشرة امتحانات مستقلة للتقييمات، في كل امتحان 20 سؤالًا.
+// يتم تدوير بنك الأسئلة المتاح وتوزيعه بالتساوي، مع تكرار الأسئلة عند الحاجة.
+const assessmentBanks=Array.from({length:10},(_,i)=>Array.from({length:20},(_,j)=>{const q=assessmentBaseQuestions[(i*7+j)%assessmentBaseQuestions.length];return {...q,n:j+1};}));
+const assessmentActivationCodes=["MN-TQ-7K4P","MN-TQ-9D2X","MN-TQ-5H8R","MN-TQ-3W6B","MN-TQ-8N1C","MN-TQ-4F9M","MN-TQ-2J7V","MN-TQ-6P3A","MN-TQ-1X5D","MN-TQ-9R4K","MN-TQ-7B2N","MN-TQ-5C8W","MN-TQ-3M6H","MN-TQ-8V1F","MN-TQ-4A9J","MN-TQ-2D7P","MN-TQ-6K3X","MN-TQ-1H5R","MN-TQ-9W4C","MN-TQ-7F2M"];
+let assessmentMode=false, selectedAssessmentExam=1;
+
 let questions=examBanks[0], selectedExam=1;
 let current=0, answers={}, name="", studentPhone="", guardianPhone="", attendanceGroup="", teacherMode=false;
+const ATTEMPT_KEY="mona_exam_attempts_v1";const EXAM_DURATION_MS=30*60*1000;let activeAttempt=null,attemptStorageKey="",timerInterval=null,examFinished=false;
+function readAttempts(){try{return JSON.parse(localStorage.getItem(ATTEMPT_KEY)||"{}")}catch(e){return {}}}
+function writeAttempt(){if(!teacherMode&&attemptStorageKey&&activeAttempt){activeAttempt.answers=answers;activeAttempt.current=current;activeAttempt.status="in_progress";const all=readAttempts();all[attemptStorageKey]=activeAttempt;localStorage.setItem(ATTEMPT_KEY,JSON.stringify(all));}}
+function stopTimer(){if(timerInterval){clearInterval(timerInterval);timerInterval=null}}
+function updateTimer(){if(!activeAttempt)return;const left=Math.max(0,activeAttempt.startedAt+EXAM_DURATION_MS-Date.now());const sec=Math.ceil(left/1000);const mm=String(Math.floor(sec/60)).padStart(2,"0"),ss=String(sec%60).padStart(2,"0");const el=$("examTimer");if(el){el.textContent=mm+":"+ss;el.classList.toggle("warning",left<=5*60*1000)}if(left<=0){stopTimer();finish(true)}}
+function startTimer(){stopTimer();updateTimer();timerInterval=setInterval(updateTimer,1000)}
+function getAttemptStorageKey(){return (assessmentMode?"assessment-":"exam-")+(assessmentMode?selectedAssessmentExam:selectedExam)+"-"+String(studentPhone).replace(/\D/g,"")}
 const GRADE_KEY="mona_derivatives_grade_history_v1";
 function readGradeHistory(){try{return JSON.parse(localStorage.getItem(GRADE_KEY)||"[]")}catch(e){return []}}
 function saveGradeRecord(record){if(teacherMode||!studentPhone)return;const all=readGradeHistory();all.push(record);localStorage.setItem(GRADE_KEY,JSON.stringify(all));}
@@ -183,29 +253,65 @@ if(!attendanceGroup){alert("اكتب مجموعة الحضور");$("attendanceGr
 const digits=s=>s.replace(/[^0-9+]/g,"");
 if(digits(studentPhone).replace(/\D/g,"").length<10 || digits(guardianPhone).replace(/\D/g,"").length<10){alert("تأكد من كتابة أرقام تليفونات صحيحة");return}
 $("startPanel").classList.add("hidden");$("dashboardPanel").classList.remove("hidden");$("studentChip").textContent=`${name} • ${attendanceGroup}`;}
-function buildExamGrid(){const grid=$("examGrid");grid.innerHTML=Array.from({length:100},(_,i)=>`<button class="exam-card" type="button" data-exam="${i+1}"><span class="ico">📝</span><strong>امتحان ${i+1}</strong><small>30 سؤالًا • 15 درجة</small></button>`).join("");grid.querySelectorAll("[data-exam]").forEach(btn=>btn.addEventListener("click",()=>{selectedExam=Number(btn.dataset.exam);$("activationPanel").classList.remove("hidden");$("activationTitle").textContent=`تفعيل امتحان ${selectedExam}`;$("activationCode").value="";$("activationMsg").textContent="";$("activationPanel").scrollIntoView({behavior:"smooth",block:"center"});}));}
-function startExam(){questions=examBanks[selectedExam-1];current=0;answers={};$("dashboardPanel").classList.add("hidden");$("examPanel").classList.remove("hidden");render()}
-function activateSelectedExam(){const entered=$("activationCode").value.trim().toUpperCase();const expected=activationCodes[selectedExam-1];if(entered!==expected){$("activationMsg").textContent="كود التفعيل غير صحيح لهذا الامتحان.";return;}$("activationMsg").textContent="تم التفعيل بنجاح.";startExam();}
+function buildExamGrid(){const grid=$("examGrid");grid.innerHTML=Array.from({length:100},(_,i)=>`<button class="exam-card" type="button" data-exam="${i+1}"><span class="ico">📝</span><strong>امتحان ${i+1}</strong><small>30 سؤالًا • 15 درجة</small></button>`).join("");grid.querySelectorAll("[data-exam]").forEach(btn=>btn.addEventListener("click",()=>{assessmentMode=false;selectedExam=Number(btn.dataset.exam);$("activationPanel").classList.remove("hidden");$("activationTitle").textContent=`تفعيل امتحان ${selectedExam}`;$("activationCode").value="";$("activationMsg").textContent="";$("activationPanel").scrollIntoView({behavior:"smooth",block:"center"});}));
+const ag=$("assessmentExamGrid");ag.innerHTML=Array.from({length:10},(_,i)=>`<button class="exam-card assessment-card" type="button" data-assessment-exam="${i+1}"><span class="ico">📚</span><strong>تقييم ${i+1}</strong><small>20 سؤالًا • مشتقات</small></button>`).join("");ag.querySelectorAll("[data-assessment-exam]").forEach(btn=>btn.addEventListener("click",()=>{assessmentMode=true;selectedAssessmentExam=Number(btn.dataset.assessmentExam);$("activationPanel").classList.remove("hidden");$("activationTitle").textContent=`تفعيل تقييم ${selectedAssessmentExam}`;$("activationCode").value="";$("activationMsg").textContent="";$("activationPanel").scrollIntoView({behavior:"smooth",block:"center"});}));}
+function showDashboardCategory(which){
+$("categoryGrid").classList.add("hidden");
+$("examsSection").classList.toggle("hidden",which!=="exams");
+$("assessmentsSection").classList.toggle("hidden",which!=="assessments");
+$("activationPanel").classList.add("hidden");
+}
+function backToCategories(){
+assessmentMode=false;
+$("categoryGrid").classList.remove("hidden");
+$("examsSection").classList.add("hidden");
+$("assessmentsSection").classList.add("hidden");
+$("activationPanel").classList.add("hidden");
+}
+function startExam(){
+questions=assessmentMode?assessmentBanks[selectedAssessmentExam-1]:examBanks[selectedExam-1];
+examFinished=false;attemptStorageKey=getAttemptStorageKey();
+const all=readAttempts();
+const saved=!teacherMode?all[attemptStorageKey]:null;
+if(saved&&(saved.status==="submitted"||saved.status==="expired")){
+alert("تم استخدام محاولة هذا الامتحان من قبل، ولا يُسمح بالدخول مرة أخرى.");
+return;
+}
+activeAttempt=saved||{startedAt:Date.now(),status:"in_progress",answers:{},current:0};
+answers=activeAttempt.answers||{};current=Math.min(Math.max(Number(activeAttempt.current)||0,0),questions.length-1);
+if(!saved)writeAttempt();
+$("dashboardPanel").classList.add("hidden");$("examPanel").classList.remove("hidden");
+render();startTimer();
+}
+function activateSelectedExam(){
+const entered=$("activationCode").value.trim().toUpperCase();
+const expected=assessmentMode?assessmentActivationCodes[selectedAssessmentExam-1]:activationCodes[selectedExam-1];
+if(entered!==expected){$("activationMsg").textContent="كود التفعيل غير صحيح لهذا الامتحان.";return;}
+const key=getAttemptStorageKey(),saved=!teacherMode?readAttempts()[key]:null;
+if(saved&&(saved.status==="submitted"||saved.status==="expired")){$("activationMsg").textContent="تم استخدام هذا الامتحان من قبل ولا يمكن الدخول مرة أخرى.";return;}
+$("activationMsg").textContent="تم التفعيل بنجاح.";startExam();
+}
 function render(){const q=questions[current];$("counter").textContent=`السؤال ${current+1} من ${questions.length}`;$("bar").style.width=((current+1)/questions.length*100)+"%";
 let html=`<div class="qnum">السؤال رقم ${q.n} • ${q.type==="mcq"?"اختر الإجابة الصحيحة":"سؤال مقالي"}</div><div class="question">${q.prompt}</div>`;
 if(q.type==="mcq"){html+='<div class="options">'+q.options.map((o,i)=>`<label class="option"><input type="radio" name="answer" value="${i}" ${answers[q.n]===i?"checked":""}><span>${["أ","ب","ج","د"][i]}) ${o}</span></label>`).join("")+'</div>'}
 else{html+=`<p><b>${q.instruction}</b></p><textarea id="essayAnswer" placeholder="اكتب إجابتك هنا...">${answers[q.n]||""}</textarea><p class="meta">السؤال المقالي للمراجعة الذاتية؛ ستظهر الإجابة النموذجية بعد التسليم.</p>`}
 $("questionArea").innerHTML=html;
-$("questionArea").querySelectorAll('input[name="answer"]').forEach(el=>el.addEventListener("change",e=>answers[q.n]=Number(e.target.value)));
-const ta=$("essayAnswer");if(ta)ta.addEventListener("input",e=>answers[q.n]=e.target.value);
+$("questionArea").querySelectorAll('input[name="answer"]').forEach(el=>el.addEventListener("change",e=>{answers[q.n]=Number(e.target.value);writeAttempt()}));
+const ta=$("essayAnswer");if(ta)ta.addEventListener("input",e=>{answers[q.n]=e.target.value;writeAttempt()});
 $("prevBtn").disabled=current===0;$("nextBtn").classList.toggle("hidden",current===questions.length-1);$("finishBtn").classList.toggle("hidden",current!==questions.length-1)}
 function normalizeArabic(v){return v.toLowerCase().replace(/[ًٌٍَُِّْـ]/g,"").replace(/[أإآ]/g,"ا").replace(/ى/g,"ي").replace(/ة/g,"ه").replace(/[^ء-ي0-9]/g,"");}
-function finish(){if(!confirm("هل تريد تسليم الامتحان وعرض الإجابات والتفسير؟"))return;
-let mcq=questions.filter(q=>q.type==="mcq"),essays=questions.filter(q=>q.type==="essay"),rawScore=mcq.filter(q=>answers[q.n]===q.answer).length,essayScore=essays.filter(q=>normalizeArabic(String(answers[q.n]||"")).includes(normalizeArabic(q.answer))).length,score=Number((rawScore*0.5+essayScore*0.5).toFixed(2)),answered=mcq.filter(q=>answers[q.n]!==undefined).length;
+function finish(force=false){if(examFinished)return;if(!force&&!confirm("هل تريد تسليم الامتحان وعرض الإجابات والتفسير؟"))return;examFinished=true;stopTimer();if(!teacherMode&&attemptStorageKey&&activeAttempt){activeAttempt.status=force?"expired":"submitted";activeAttempt.finishedAt=Date.now();activeAttempt.answers=answers;const all=readAttempts();all[attemptStorageKey]=activeAttempt;localStorage.setItem(ATTEMPT_KEY,JSON.stringify(all))}
+let mcq=questions.filter(q=>q.type==="mcq"),essays=questions.filter(q=>q.type==="essay"),rawScore=mcq.filter(q=>answers[q.n]===q.answer).length,essayScore=essays.filter(q=>normalizeArabic(String(answers[q.n]||"")).includes(normalizeArabic(q.answer))).length;
+const score=assessmentMode?Number((((rawScore+essayScore)/questions.length)*15).toFixed(2)):Number((rawScore*0.5+essayScore*0.5).toFixed(2));
 $("examPanel").classList.add("hidden");$("resultPanel").classList.remove("hidden");
-$("scoreText").textContent=`${score} / 15`;$("resultExamTitle").textContent=`امتحان ${selectedExam} – المشتقات – ميس مني حامد`;$("resultName").textContent="اسم الطالب: "+name;
-$("resultSummary").textContent=`إجابات الاختيار الصحيحة: ${rawScore} من 18. الإجابات المقالية المقبولة: ${essayScore} من 12. الدرجة النهائية: ${score} من 15.`;
+$("scoreText").textContent=`${score} / 15`;$("resultExamTitle").textContent=`${assessmentMode?"تقييم":"امتحان"} ${assessmentMode?selectedAssessmentExam:selectedExam} – المشتقات – ميس مني حامد`;$("resultName").textContent="اسم الطالب: "+name;
+$("resultSummary").textContent=`إجابات الاختيار الصحيحة: ${rawScore} من ${mcq.length}. الإجابات المقالية المقبولة: ${essayScore} من ${essays.length}. الدرجة النهائية: ${score} من 15.`;
 const percent=Math.round((score/15)*100);
-saveGradeRecord({exam:selectedExam,score,percent,phone:studentPhone,name,date:Date.now()});
-$("certName").textContent=name;$("certScore").textContent=`الدرجة: ${score} من 15 (اختيار: ${rawScore}/18 • مقالي: ${essayScore}/12)`;
+saveGradeRecord({exam:assessmentMode?`تقييم ${selectedAssessmentExam}`:selectedExam,score,percent,phone:studentPhone,name,date:Date.now()});
+$("certName").textContent=name;$("certScore").textContent=`الدرجة: ${score} من 15 (اختيار: ${rawScore}/${mcq.length} • مقالي: ${essayScore}/${essays.length})`;
 $("whatsappBtn").onclick=()=>{
 const percent=Math.round((score/15)*100);
-const message=`نتيجة امتحان ${selectedExam} – المشتقات – بوابة ميس منى حامد
+const message=`نتيجة ${assessmentMode?"تقييم":"امتحان"} ${assessmentMode?selectedAssessmentExam:selectedExam} – المشتقات – بوابة ميس منى حامد
 
 اسم الطالب: ${name}
 رقم تليفون الطالب: ${studentPhone||"غير مسجل – وضع المدرس"}
@@ -214,8 +320,8 @@ const message=`نتيجة امتحان ${selectedExam} – المشتقات – 
 
 الدرجة: ${score} من 15
 النسبة المئوية: ${percent}%
-الاختيار الصحيح: ${rawScore} من 18
-المقالي المقبول: ${essayScore} من 12
+الاختيار الصحيح: ${rawScore} من ${mcq.length}
+المقالي المقبول: ${essayScore} من ${essays.length}
 
 تم تسليم الامتحان إلكترونيًا.`;
 window.open("https://wa.me/201116075391?text="+encodeURIComponent(message),"_blank","noopener");
@@ -224,7 +330,13 @@ $("reviewBtn").onclick=()=>{$("reviewPanel").classList.remove("hidden");$("revie
 let essayOk=normalizeArabic(String(answers[q.n]||"")).includes(normalizeArabic(q.answer));return `<div class="feedback ${essayOk?"correct":"wrong"}"><b>س${q.n} – مقالي:</b> ${q.prompt}<br><b>المطلوب:</b> ${q.instruction}<br><b>إجابتك:</b> ${String(answers[q.n]||"لم تتم الإجابة").replace(/</g,"&lt;")}<br><b>التقييم:</b> ${essayOk?"إجابة مقبولة":"تحتاج مراجعة"}<br><b>الإجابة النموذجية:</b> ${q.answer}</div>`}).join("");$("reviewPanel").scrollIntoView({behavior:"smooth"})};
 $("reviewBtn").click();
 }
-$("registerBtn").onclick=start;$("activateBtn").onclick=activateSelectedExam;buildExamGrid();$("prevBtn").onclick=()=>{if(current>0){current--;render()}};$("nextBtn").onclick=()=>{if(current<questions.length-1){current++;render()}};$("finishBtn").onclick=finish;
+$("registerBtn").onclick=start;
+$("activateBtn").onclick=activateSelectedExam;
+$("showExamsBtn").onclick=()=>showDashboardCategory("exams");
+$("showAssessmentsBtn").onclick=()=>showDashboardCategory("assessments");
+$("backCategoriesFromExams").onclick=backToCategories;
+$("backCategoriesFromAssessments").onclick=backToCategories;
+buildExamGrid();$("prevBtn").onclick=()=>{if(current>0){current--;writeAttempt();render()}};$("nextBtn").onclick=()=>{if(current<questions.length-1){current++;writeAttempt();render()}};$("finishBtn").onclick=finish;
 
 $("teacherBtn").onclick=teacherEnter;
 $("historyBtn").onclick=()=>{$("historyPanel").classList.toggle("hidden");$("historyPanel").scrollIntoView({behavior:"smooth",block:"center"});};
